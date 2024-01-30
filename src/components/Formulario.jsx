@@ -1,8 +1,9 @@
 import Mensajes from "./Mensajes"
 import { useState } from "react"
 import { v4 as uuidv4 } from 'uuid';
+import { useEffect } from 'react'
 
-export const Formulario = ({setEstado}) => {
+export const Formulario = ({setEstado,idMetro, setIdmetro}) => {
     const [error, setError] = useState(false)
     const [mensaje, setMensaje] = useState(false)
     const [form, setform] = useState({
@@ -13,6 +14,36 @@ export const Formulario = ({setEstado}) => {
             maquinista:"",
             detalles:""
         })
+
+        useEffect(() => {
+            // Verificar de que exista la variable idMetro
+            if(idMetro){
+                // Crear una funcion autoejecutada para consultar el metro en base al ID
+                (async function (idMetro) {
+                    // Uso del TRY-CATCH
+                    try {
+                        // Definir la url para la ejecucion del fetch y la conversion a un json
+                        const respuesta = await (await fetch(`https://65b956d9b71048505a8ab036.mockapi.io/Metro/${idMetro}`)).json()
+                        // Desestructurar la respuesta
+                        const {id,nombre,sector,salida,llegada,maquinista,detalles} = respuesta
+                        // Actualizando los valores del formulario
+                        setform({
+                            ...form,
+                            nombre,
+                            sector,
+                            salida,
+                            llegada,
+                            maquinista,
+                            detalles,
+                            id
+                        })
+                    }
+                    catch (error) {
+                        console.log(error);
+                    }
+                })(idMetro)
+            }
+        }, [idMetro])
 
     const handleChange = (e) => { 
         setform({
@@ -33,7 +64,25 @@ export const Formulario = ({setEstado}) => {
             return
         }
         try {
-            const url ="http://localhost:3000/metro"
+            if(form.id){
+                // Se va a realizar una actualizacion 
+                const url = `https://65b956d9b71048505a8ab036.mockapi.io/Metro/${form.id}`
+                await fetch(url,{
+                    method:'PUT',
+                    body:JSON.stringify(form),
+                    headers:{'Content-Type':'application/json'}
+                })
+                setEstado(true)
+                setform({})
+                setIdmetro(0) // Cambia el valor a su estado original
+								setTimeout(() => {
+	                    setEstado(false)
+                    setform({})
+                }, 1000)
+            }
+            else{
+                // crear una nueva ruta
+            const url ="https://65b956d9b71048505a8ab036.mockapi.io/Metro"
 						form.id = uuidv4()
             await fetch(url,{
                 method:'POST', // Especificar el tipo de accion
@@ -47,6 +96,7 @@ export const Formulario = ({setEstado}) => {
 								setEstado(false)
                 setform({})
             }, 1000);
+        }
         } catch (error) {
             console.log(error); 
         }
@@ -151,7 +201,7 @@ export const Formulario = ({setEstado}) => {
                 className='bg-sky-900 w-full p-3 
         text-white uppercase font-bold rounded-lg 
         hover:bg-red-900 cursor-pointer transition-all'
-                value='Registrar ruta' />
+            value={form.id ? "Actualizar ruta" : "Registrar ruta"} />
 
         </form>
     )
